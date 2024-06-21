@@ -58,17 +58,6 @@ If your application requires initial data or you want to populate the database w
 ```
 ./recreate_models_and_data.sh
 ```
-## Running the Server
-
-Start the Development Server
-
-With the database set up, you can start the Django development server:
-
-```
-python manage.py runserver
-```
-The server will start, and you can access the application by navigating to http://127.0.0.1:8000/ in your web browser.
-
 
 ## Unit Tests
 
@@ -81,13 +70,16 @@ python manage.py test
 Recall to disable the failing tests and enable them one by one to see the failing tests. 
 Note that the tests use the fixture `database_dump.json`.
 
-## Server
+## Running the Server
 
-To run the server in the virtual environment, use the following command:
+Start the Development Server
+
+With the database set up, you can start the Django development server:
 
 ```
 python manage.py runserver
 ```
+The server will start, and you can access the application by navigating to http://127.0.0.1:8000/ in your web browser.
 
 ## Models, Database, and Fake Data
 
