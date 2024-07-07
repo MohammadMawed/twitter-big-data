@@ -16,7 +16,7 @@ class SocialNetworkUsers(FameUsers):
         "self", symmetrical=False, related_name="followed_by"
     )
     is_banned = models.BooleanField(default=False)
-
+    
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.email})"
 

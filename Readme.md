@@ -1,7 +1,7 @@
 ## Preliminary
 
 You need [pipenv](https://pipenv.pypa.io/en/latest/) to run the project. If you use our
-Vagrant VM, please run the following command inside the VM. But if you are like me not using VM then just skip the VM part and follow my guide:
+Vagrant VM, please run the following command inside the VM:
 ```
 pip install --user --break-system-packages pipenv
 ```
@@ -21,8 +21,12 @@ Install the project using pipenv in the directory where the `Pipfile` resides. T
 pipenv install
 ```
 
-will create a virtual environment and install the required dependencies. When using an IDE like
-PyCharm you want o make sure that that virtual environment is used for the project.
+will create a virtual environment and install the required dependencies. Note that our Docker container only has
+Python3.10 installed, however, you may also use this instead with the command
+```
+pipenv --python /usr/bin/python3 install
+```
+When using an IDE like PyCharm you want to make sure that that virtual environment is used for the project.
 
 Then
 ```
@@ -36,29 +40,6 @@ exit
 ```
 command.
 
-## Without VM
-
-Install dependencies manually using pip. Refer to the Pipfile for the list of dependencies, use the following command:
-
-```
-pip install django djangorestframework faker termcolor regex
-```
-
-
-Before running the application, you need to apply migrations to set up your database schema. Run:
-
-```
-python manage.py migrate
-```
-
-(Optional) Load Initial Data
-
-If your application requires initial data or you want to populate the database with fake data for development purposes, use the provided script:
-
-```
-./recreate_models_and_data.sh
-```
-
 ## Unit Tests
 
 To run the unit tests in the virtual environment, use the following command:
@@ -70,16 +51,19 @@ python manage.py test
 Recall to disable the failing tests and enable them one by one to see the failing tests. 
 Note that the tests use the fixture `database_dump.json`.
 
-## Running the Server
+## Server
 
-Start the Development Server
-
-With the database set up, you can start the Django development server:
-
+To run the server in the virtual environment, use the following command:
 ```
 python manage.py runserver
 ```
-The server will start, and you can access the application by navigating to http://127.0.0.1:8000/ in your web browser.
+
+If you are using our Vagrant VM or our Docker container, you need to explicitly specify the IP address and port:
+```
+python manage.py runserver 0.0.0.0:8000
+```
+
+In both cases, you can access the server in a browser of your choice under http://127.0.0.1:8000/.
 
 ## Models, Database, and Fake Data
 
