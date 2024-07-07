@@ -1,7 +1,8 @@
 from django.db.models import Q
 
-from fame.models import Fame, FameLevels
-from socialnetwork.models import Posts, SocialNetworkUsers
+from fame.models import Fame, FameLevels, ExpertiseAreas
+from socialnetwork.models import Posts, SocialNetworkUsers, PostExpertiseAreasAndRatings
+
 
 # general methods independent of html and REST views
 # should be used by REST and html views
@@ -106,14 +107,61 @@ def submit_post(
         post.determine_expertise_areas_and_truth_ratings()
     )
     post.published = not _at_least_one_expertise_area_contains_bullshit
-
+    
     redirect_to_logout = False
 
 
     #########################
     # add your code here
     #########################
+    user, fame_levels = fame(user)
+    #print(_expertise_areas)
+    #print(_expertise_areas)
+    #print(fame_levels,_expertise_areas)
+    ######################################
+    # T1 
+    for area in _expertise_areas :
+        #x = fame_levels.filter(expertise_area=area['expertise_area'] )
+        negative_fame=fame_levels.filter(expertise_area=area['expertise_area'], fame_level__numeric_value__lte=0)
+        if negative_fame.exists():
+            post.published = False
+            break
+    #######################################
 
+    #####################################
+    # T2
+    #negative_truth = _expertise_areas.filter(truth_rating__numeric_value__lt = 0)
+    truth = PostExpertiseAreasAndRatings.objects.filter(post=post, truth_rating__numeric_value__lt = 0)
+    
+    for elem in truth:
+        expert = elem.expertise_area
+        x = fame_levels.filter(expertise_area= expert)
+        if len(x)==0:
+            Fame.objects.create(user=user, expertise_area=expert, fame_level = FameLevels.objects.get(name="Confuser"))
+        elif len(x)>0:
+            #print("here")
+            try :
+                fame_lev = x[0].fame_level.get_next_lower_fame_level()
+            except ValueError:
+                user.is_banned = True
+                user.is_active = False
+                user_instances = SocialNetworkUsers.objects.filter(email = user.email)
+                user_instances.update(is_banned = True)
+                user_instances.update(is_active = False)
+                #print(user_instances)
+                redirect_to_logout = True
+                user_posts = Posts.objects.filter(author = user)
+                post.published = False
+                user_posts.update(published = False)
+            #print(fame_lev)
+            else:
+                x.update(fame_level= fame_lev)
+    #print([i.expertise_area for i in truth])
+    
+
+    #print(truth)
+    #print(negative_truth)
+        
     post.save()
 
     return (
@@ -173,10 +221,26 @@ def experts():
     there is a tie, within that tie sort by date_joined (most recent first). Note that expertise areas with no expert
     may be omitted.
     """
-    pass
+    
     #########################
     # add your code here
     #########################
+    res = {}
+    for area in ExpertiseAreas.objects.all():
+        area_postivie_users = Fame.objects.filter(expertise_area=area, fame_level__numeric_value__gt=0)
+        l = []
+        #print(area_postivie_users)
+        for positiv_user in area_postivie_users:
+            dic = {}
+            dic["user"] = positiv_user.user
+            dic["fame_level_numeric"] = positiv_user.fame_level.numeric_value
+            #print(positiv_user.fame_level, positiv_user.user)
+            l.append(dic)
+        #print(area, )
+        res[area] = sorted(l, key=lambda item :(item['fame_level_numeric'], item["user"].date_joined), reverse=True)
+    #print("type of res is ")
+    return res
+
 
 
 
@@ -187,8 +251,22 @@ def bullshitters():
     there is a tie, within that tie sort by date_joined (most recent first). Note that expertise areas with no expert
     may be omitted.
     """
-    pass
+    
     #########################
     # add your code here
     #########################
+    res = {}
+    for area in ExpertiseAreas.objects.all():
+        area_bulshitters = Fame.objects.filter(expertise_area=area, fame_level__numeric_value__lt=0)
+        l = []
+        #print(area_postivie_users)
+        for positiv_user in area_bulshitters:
+            dic = {}
+            dic["user"] = positiv_user.user
+            dic["fame_level_numeric"] = positiv_user.fame_level.numeric_value
+            #print(positiv_user.fame_level, positiv_user.user)
+            l.append(dic)
+        #print(area, )
+        res[area] = sorted(l, key=lambda item :(-item['fame_level_numeric'], item["user"].date_joined), reverse=True)
+    return res
 

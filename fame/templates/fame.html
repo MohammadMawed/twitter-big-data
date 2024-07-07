@@ -13,6 +13,20 @@
     </style>
     <br>
     <h2>Fame for user {{ user }}</h2>
+    {% if follows_bool %} 
+    <form method = "POST" action ="/fame/html/fame/unfollow">
+        {% csrf_token %}
+        <button type = "submit" name = "unfollow" class = "button" value={{userid}} >Unfollow </button>
+        <input type="hidden" id="user_to_follow" value={{user}} > 
+    </form>
+        
+    {% else %}
+    <form method = "POST" action ="/fame/html/fame/follow">
+        {% csrf_token %}
+        <button type = "submit" name ="follow" class = "button"  value={{userid}} >Follow</button>
+        <input type="hidden" id="user_to_follow" value={{user}} > 
+    </form>
+        {% endif %}
     <br>
     {% for f in fame %}
         <div class="card" style="margin-bottom: 20px; margin-left: 40px; margin-right: 40px;">

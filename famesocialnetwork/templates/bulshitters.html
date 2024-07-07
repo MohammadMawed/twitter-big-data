@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<head> 
+    <style>
+    .topnav {
+        overflow: hidden;
+        background-color: #333;
+        position: fixed;
+        top:0px
+      }
+      
+      .topnav a {
+        
+        color: #f2f2f2;
+        text-align: center;
+        padding: 14px 16px;
+        text-decoration: none;
+        font-size: 17px;
+        
+      }
+      
+      .topnav a:hover {
+        background-color: #ddd;
+        color: black;
+        
+      }
+      
+      .topnav a.active {
+        background-color: #04AA6D;
+        color: white;
+        
+      }
+        h1 {
+          text-align: center;
+          color: dodgerblue;
+          margin-top: 80px;
+          height: 100px;
+          padding: 16px;
+        }
+        h2{
+            text-align: center
+        }
+        table, th, td {
+            text-align : center;
+       border: 1px solid black;
+       border-collapse: collapse;
+   }
+   .center {
+  margin-left: auto;
+  margin-right: auto;
+}
+        
+        </style>
+</head>
+
+<body style="background-color:powderblue;">
+    <div class="topnav">
+        {% for area, users in bulshitters.items %}
+        <a class = "#{{area}}" href ="#{{area}}">{{area }} </a>
+        {%endfor%}
+        </div>
+            <h1> Bulshitters scoreboard</h1>
+            {% for area, users in bulshitters.items %}
+            <h2 id = "{{area}}">{{area}}</h2>
+            <table class="table table-hover table-striped table-sm center" id="Board">
+                <thead>
+                <tr>
+                    <th>#</th>
+                    <th>User</th>
+                <th>Fame Level</th>
+                </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+            <tr>
+                <td style="width: 30px"><span class="badge badge-light" style="color: black">{{forloop.counter}}</span>
+                </td>
+                <td {% if forloop.counter < 4 %} style = "color: coral" {% endif %}>
+                    {{user.user}}
+                </td>
+                <td style="width: 300px ;{% if forloop.counter < 4 %}color: coral {% endif %} ">{{user.fame_level_numeric}} </td>
+            </tr>
+            {% endfor %}
+    </tbody>
+    </table>
+    {% endfor %}
+
+    
+    
+
+</body>
