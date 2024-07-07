@@ -1,7 +1,7 @@
 from django.db.models import Q
 
-from fame.models import Fame, FameLevels
-from socialnetwork.models import Posts, SocialNetworkUsers
+from fame.models import Fame, FameLevels, ExpertiseAreas
+from socialnetwork.models import Posts, SocialNetworkUsers, PostExpertiseAreasAndRatings
 
 # general methods independent of html and REST views
 # should be used by REST and html views
@@ -92,7 +92,7 @@ def submit_post(
     3. a boolean indicating whether the user was banned and logged out and should be redirected to the login page
     """
 
-    # create post  instance:
+    # Create post instance
     post = Posts.objects.create(
         content=content,
         author=user,
@@ -100,27 +100,64 @@ def submit_post(
         replies_to=replies_to,
     )
 
-    # classify the content into expertise areas:
-    # only publish the post if none of the expertise areas contains bullshit:
-    _at_least_one_expertise_area_contains_bullshit, _expertise_areas = (
-        post.determine_expertise_areas_and_truth_ratings()
-    )
-    post.published = not _at_least_one_expertise_area_contains_bullshit
+    # Classify the content into expertise areas
+    contains_bullshit, expertise_areas = post.determine_expertise_areas_and_truth_ratings()
 
+    # Assume the post can be published initially
+    post.published = not contains_bullshit
+
+    # Initialize the redirect to logout flag
     redirect_to_logout = False
 
+    #########################
+    # T1 Implementation 
+    #########################
+
+    # Fetching the user's fame level
+    fame_levels = Fame.objects.filter(user=user)
+    
+    # Going through expertise area of the post
+    for area in expertise_areas:
+        # Check fame level for the expertise area and then prevent the post from being published if the fame level is negative
+        negative_fame = fame_levels.filter(expertise_area=area['expertise_area'], fame_level__numeric_value__lte=0)
+        if negative_fame.exists():
+            post.published = False
+            break
 
     #########################
-    # add your code here
+    # T2 Implementation 
     #########################
+
+    negative_truth_ratings = PostExpertiseAreasAndRatings.objects.filter(post=post, truth_rating__numeric_value__lt=0)
+
+    for elem in negative_truth_ratings:
+        expertise_area = elem.expertise_area
+        current_fame = fame_levels.filter(expertise_area=expertise_area).first()
+
+        if current_fame:
+            try:
+                next_lower_fame_level = current_fame.fame_level.get_next_lower_fame_level()
+                current_fame.fame_level = next_lower_fame_level
+                current_fame.save()
+            except ValueError:
+                # Ban user and unpublish their posts
+                user.is_active = False
+                user.is_banned = True
+                user.save()
+                redirect_to_logout = True
+                Posts.objects.filter(author=user).update(published=False)
+                break  # Exit the loop as the user is banned
+        else:
+            Fame.objects.create(user=user, expertise_area=expertise_area, fame_level=FameLevels.objects.get(name="Confuser"))
 
     post.save()
 
     return (
         {"published": post.published, "id": post.id},
-        _expertise_areas,
+        expertise_areas,
         redirect_to_logout,
     )
+
 
 
 def rate_post(
@@ -173,11 +210,34 @@ def experts():
     there is a tie, within that tie sort by date_joined (most recent first). Note that expertise areas with no expert
     may be omitted.
     """
-    pass
+    
+        
     #########################
-    # add your code here
+    # T3 Implementation 
     #########################
 
+    
+    user_expertise = {}
+
+    # Fetching all expertise areas
+    expertise_areas = ExpertiseAreas.objects.all()
+
+    for area in expertise_areas:
+        # Fetching positive fame level users for the current expertise area
+        area_experts = Fame.objects.filter(expertise_area=area, fame_level__numeric_value__gt=0).order_by('-fame_level__numeric_value', 'user__date_joined')
+        
+        # Return only expertise areas with experts
+        if area_experts.exists():
+            user_expertise[area.id] = []
+
+            for expert in area_experts:
+                user = expert.user
+                fame_level_numeric = expert.fame_level.numeric_value
+                
+                user_expertise[area.id].append({"user": user, "fame_level_numeric": fame_level_numeric})
+        
+    return user_expertise
+      
 
 
 def bullshitters():
@@ -187,8 +247,29 @@ def bullshitters():
     there is a tie, within that tie sort by date_joined (most recent first). Note that expertise areas with no expert
     may be omitted.
     """
-    pass
+    
     #########################
-    # add your code here
+    # T4 Implementation 
     #########################
 
+
+    user_bullshitter = {}
+
+    # Fetching all expertise areas
+    expertise_areas = ExpertiseAreas.objects.all()
+
+    for area in expertise_areas:
+        # Fetching negative fame level users for the current expertise area
+        area_bullshitters = Fame.objects.filter(expertise_area=area, fame_level__numeric_value__lt=0).order_by('fame_level__numeric_value', 'user__date_joined')
+        
+        # Return only expertise areas with bullshitters
+        if area_bullshitters.exists():
+            user_bullshitter[area.id] = []
+
+            for bullshitter in area_bullshitters:
+                user = bullshitter.user
+                fame_level_numeric = bullshitter.fame_level.numeric_value
+                
+                user_bullshitter[area.id].append({"user": user, "fame_level_numeric": fame_level_numeric})
+        
+    return user_bullshitter
